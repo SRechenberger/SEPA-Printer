@@ -24,6 +24,8 @@ namespace SEPA_Printer
         private const int BLOCKS = 27;
         private const int BLOCKS_IBAN = 34;
 
+        private SEPACarrier carrier;
+
         public SEPA()
         {
             InitializeComponent();
@@ -42,44 +44,73 @@ namespace SEPA_Printer
 
             PaperSize sepaSize = new PaperSize("SEPA Überweisungsträger", 416, 590);
 
-            if (printing == DialogResult.OK) 
+            try
             {
-                Font printFont = new Font("Courier New", FONT_SIZE);
-                PrintDocument pd = new PrintDocument();
+                carrier = new SEPACarrier(
+                    this.TxtReceiver.Text,
+                    this.TxtReceiverIBAN.Text,
+                    this.TxtReceiverBIC.Text,
+                    Single.Parse(this.TxtAmount.Text),
+                    this.TxtSenderUsage1.Text,
+                    this.TxtSenderUsage2.Text,
+                    this.TxtSenderIdent.Text,
+                    this.TxtSenderIBAN.Text
+                );
 
-                pd.DefaultPageSettings.Margins.Top = 69;
-                pd.DefaultPageSettings.Margins.Bottom = 77;
-                pd.DefaultPageSettings.Margins.Left = 30;
-                pd.DefaultPageSettings.Margins.Right = 30;
-                pd.DefaultPageSettings.PaperSize = sepaSize;
-                pd.DefaultPageSettings.PrinterResolution.X = 100;
-                pd.DefaultPageSettings.PrinterResolution.Y = 100;
-
-                pd.PrinterSettings.PrinterName = pDialog.PrinterSettings.PrinterName;
-                pd.PrintPage += new PrintPageEventHandler((object lsender, PrintPageEventArgs ev) =>
+                if (printing == DialogResult.OK)
                 {
-                    String text = this.textBox1.Text;
-                    float xPos = ev.MarginBounds.Left;
-                    float yPos = (float)(ev.MarginBounds.Top);
-                    ev.Graphics.DrawRectangle(new Pen(Brushes.Black), 0, 0, 10, 10);
-                    for (int line = 0; line < 8; line++)
-                    {
-                        for (int block = 0; block < BLOCKS; block++)
-                        {
-                            try
-                            {
-                                ev.Graphics.DrawString(text.Substring(block, 1), printFont, Brushes.Black, xPos + block * BLOCK_WIDTH, yPos + line * LINE_HEIGHT * 2, new StringFormat());
-                            } catch(ArgumentOutOfRangeException ex)
-                            {
-                                // Do Nothing
-                            }
-                        }
-                    }
-                    ev.HasMorePages = false;
-                });
+                    PrintDocument pd = new PrintDocument();
 
-                pd.Print();
+                    pd.DefaultPageSettings.Margins.Top = 69;
+                    pd.DefaultPageSettings.Margins.Bottom = 77;
+                    pd.DefaultPageSettings.Margins.Left = 30;
+                    pd.DefaultPageSettings.Margins.Right = 30;
+                    pd.DefaultPageSettings.PaperSize = sepaSize;
+                    pd.DefaultPageSettings.PrinterResolution.X = 100;
+                    pd.DefaultPageSettings.PrinterResolution.Y = 100;
+
+                    pd.PrinterSettings.PrinterName = pDialog.PrinterSettings.PrinterName;
+                    pd.PrintPage += new PrintPageEventHandler((object lsender, PrintPageEventArgs ev) =>
+                    {
+                        String text = this.TxtReceiver.Text;
+                        float xPos = ev.MarginBounds.Left;
+                        float yPos = (float)(ev.MarginBounds.Top);
+
+                        RenderString(carrier.Receiver, BLOCK_WIDTH, 0, 0, 27, pd.DefaultPageSettings.Margins.Top, pd.DefaultPageSettings.Margins.Left, ev.Graphics);
+                        RenderString(carrier.ReceiverIBAN, BLOCK_WIDTH_IBAN, 1, 0, 34, pd.DefaultPageSettings.Margins.Top, pd.DefaultPageSettings.Margins.Left, ev.Graphics);
+                        RenderString(carrier.ReceiverBIC, BLOCK_WIDTH, 2, 0, 11, pd.DefaultPageSettings.Margins.Top, pd.DefaultPageSettings.Margins.Left, ev.Graphics);
+                        RenderString(carrier.Amount.ToString("n2"), BLOCK_WIDTH, 3, 16, 27, pd.DefaultPageSettings.Margins.Top, pd.DefaultPageSettings.Margins.Left, ev.Graphics);
+                        RenderString(carrier.SenderIdent, BLOCK_WIDTH, 4, 0, 27, pd.DefaultPageSettings.Margins.Top, pd.DefaultPageSettings.Margins.Left, ev.Graphics);
+                        RenderString(carrier.SenderUsage1, BLOCK_WIDTH, 5, 0, 27, pd.DefaultPageSettings.Margins.Top, pd.DefaultPageSettings.Margins.Left, ev.Graphics);
+                        RenderString(carrier.SenderUsage2, BLOCK_WIDTH, 6, 0, 27, pd.DefaultPageSettings.Margins.Top, pd.DefaultPageSettings.Margins.Left, ev.Graphics);
+                        RenderString(carrier.SenderIBAN, BLOCK_WIDTH, 7, 0, 22, pd.DefaultPageSettings.Margins.Top, pd.DefaultPageSettings.Margins.Left, ev.Graphics);
+
+                        ev.HasMorePages = false;
+                    });
+
+                    pd.Print();
+                }
+            } catch(ArgumentException ex)
+            {
+                MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace, "Fehler", MessageBoxButtons.OK);
+                return;
             }
+        }
+
+        private void RenderString(string str, int blockWidth, int line, int begin, int end, int topMargin, int leftMargin, Graphics graphics)
+        {
+            Font printFont = new Font("Courier New", FONT_SIZE);
+            StringFormat stringFormat = new StringFormat();
+            for (int block = begin; block < Math.Min(begin + str.Length, end); block++)
+            {
+                graphics.DrawString($"{str[block-begin]}", printFont, Brushes.Black, leftMargin + block * blockWidth, topMargin + line * LINE_HEIGHT * 2, stringFormat); 
+            }
+        }
+
+        private void toolStripMenuItem2_Click(object sender, EventArgs e)
+        {
+
+            MessageBox.Show("Yeah", "You Clicken on Something", MessageBoxButtons.OK);
         }
     }
 }
