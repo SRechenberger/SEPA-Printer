@@ -70,7 +70,7 @@ namespace SEPA_Printer
             }
         }
 
-        private void InputCarrier()
+        private bool InputCarrier()
         {
             try
             {
@@ -84,10 +84,20 @@ namespace SEPA_Printer
                     this.TxtSenderIdent.Text,
                     this.TxtSenderIBAN.Text
                 );
-            } catch(Exception ex)
+            } catch(ArgumentException ex)
             {
                 MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace, "Fehler beim Lesen", MessageBoxButtons.OK);
+                return false;
+            } catch(FormatException ex)
+            {
+                MessageBox.Show("Der Betrag ist keine gültige Zahl.\n\n" + ex.StackTrace, "Fehler beim Lesen", MessageBoxButtons.OK);
+                return false;
+            } catch(Exception ex)
+            {
+                MessageBox.Show(ex.Message + "\n\n" + ex.StackTrace, "Unerwarteter Fehler", MessageBoxButtons.OK);
+                return false;
             }
+            return true;
         }
 
 
@@ -103,7 +113,7 @@ namespace SEPA_Printer
 
         private void MnuFileSave_Click(object sender, EventArgs e)
         {
-            this.InputCarrier();
+            if (!this.InputCarrier()) return;
 
             string json = this.carrier.Save();
 
@@ -132,7 +142,7 @@ namespace SEPA_Printer
 
         private void MnuFileSaveAs_Click(object sender, EventArgs e)
         {
-            this.InputCarrier();
+            if (!this.InputCarrier()) return;
 
             string json = this.carrier.Save();
 
@@ -188,7 +198,7 @@ namespace SEPA_Printer
 
                 if (saveChanges == DialogResult.Yes)
                 {
-                    this.InputCarrier();
+                    if (!this.InputCarrier()) return false;
 
                     string json = this.carrier.Save();
 
@@ -286,6 +296,7 @@ namespace SEPA_Printer
 
         private void MnuFilePrint_Click(object sender, EventArgs e)
         {
+            if (!this.InputCarrier()) return;
             PrintDialog pDialog = new PrintDialog();
             DialogResult printing = pDialog.ShowDialog();
 
@@ -293,7 +304,6 @@ namespace SEPA_Printer
 
             if (printing == DialogResult.OK)
             {
-                this.InputCarrier();
 
                 PrintDocument pd = new PrintDocument();
 
